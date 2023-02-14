@@ -820,13 +820,6 @@ all.genes <- all.genes[str_detect(pattern = var_regex, string = all.genes, negat
 combined_srt[["var_regex"]] <-
   PercentageFeatureSet(combined_srt, pattern = var_regex)
 
-combined_srt <- ScaleData(combined_srt,
-  features = all.genes,
-  vars.to.regress = c(
-    "log10GenesPerUMI"
-  )
-)
-
 keep_genes <-
   c(gene_int, hvg) %>%
   unique() %>%
@@ -850,11 +843,12 @@ kable_material(
 
 hvg <- hvg[hvg %in% keep_genes]
 
-plan("sequential")
-invisible(gc())
-plan("multicore", workers = 24)
-n_cores <- 4
-options(future.globals.maxSize = 32000 * 1024^2)
+combined_srt <- ScaleData(combined_srt,
+  features = hvg,
+  vars.to.regress = c(
+    "log10GenesPerUMI"
+  )
+)
 
 npcs <- 50
 combined_srt <- RunPCA(combined_srt,
