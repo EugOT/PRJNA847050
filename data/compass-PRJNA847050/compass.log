@@ -1,0 +1,71 @@
+Compass version: 0.9.10.2
+Git commit: Not in Git repo
+Python Version:
+3.8.8 | packaged by conda-forge | (default, Feb 20 2021, 16:22:27) 
+[GCC 9.3.0]
+Python prefix: /opt/python/3.8.8
+Numpy version: 1.23.5
+Pandas version: 1.5.3
+Supplied Arguments: 
+   data: ['/data/PRJNA847050/data/PRJNA847050-astrocytes_dataset-0.001-expr-mtx.tsv']
+   data_mtx: None
+   model: RECON2_mat
+   species: mus_musculus
+   media: default-media
+   output_dir: /data/PRJNA847050/data/compass-PRJNA847050
+   temp_dir: /data/PRJNA847050/data/compass-PRJNA847050/_tmp
+   torque_queue: None
+   num_processes: 40
+   lambda: 0.1
+   single_sample: None
+   transposed: False
+   sample_range: None
+   reaction_range: None
+   metabolite_range: None
+   generate_cache: False
+   test_mode: False
+   num_threads: 1
+   and_function: mean
+   select_reactions: None
+   select_subsystems: None
+   glucose: None
+   collect: False
+   config_file: None
+   num_neighbors: 30
+   symmetric_kernel: False
+   input_weights: None
+   penalty_diffusion: knn
+   no_reactions: False
+   calc_metabolites: True
+   precache: False
+   input_knn: None
+   input_knn_distances: None
+   output_knn: None
+   latent_space: None
+   only_penalties: None
+   example_inputs: None
+   microcluster_size: None
+   microcluster_file: None
+   microcluster_data_file: None
+   anndata_output: False
+   anndata_obs: None
+   anndata_uns: None
+   detailed_perf: False
+   penalties_file: 
+   lpmethod: 4
+   advance: 2
+   save_argmaxes: False
+   isoform_summing: remove-summing
+   list_genes: None
+   list_reactions: None
+
+COMPASS Started: 2023-05-12 11:59:46.156352
+Cache for model and media already built
+Evaluating Reaction Penalties...
+Processing 3750 samples using 40 processes
+Progress bar will update once the first sample is finished
+Collecting results from: /data/PRJNA847050/data/compass-PRJNA847050/_tmp
+Writing output to: /data/PRJNA847050/data/compass-PRJNA847050
+COMPASS Completed Successfully
+
+Elapsed Time: 3 days, 6:59:35.614753

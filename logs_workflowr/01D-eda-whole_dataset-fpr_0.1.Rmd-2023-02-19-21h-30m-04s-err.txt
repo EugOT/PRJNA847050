@@ -1,0 +1,10 @@
+Loading .Rprofile for the current workflowr project
+This is workflowr version 1.7.0
+Run ?workflowr for help getting started
+System has not been booted with systemd as init system (PID 1). Can't operate.
+Failed to connect to bus: Host is down
+Error in clustree(combined_srt, node_colour = "Npy1r", node_colour_aggr = "mean",  : 
+  could not find function "clustree"
+In addition: Warning message:
+In system("timedatectl", intern = TRUE) :
+  running command 'timedatectl' had status 1

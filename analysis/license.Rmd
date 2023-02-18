@@ -3,19 +3,30 @@ title: "License"
 output:
   workflowr::wflow_html:
     toc: false
+    theme: cosmo
+    highlight: textmate
+    code_folding: hide
+    df_print: paged
 editor_options:
   chunk_output_type: console
 ---
 
-What license are you using for your code? See [choosealicense.com][choose] for
-help deciding. It's a convention to save a file `LICENSE` in the root of your
-Git repo that contains the license text.
+This repository contains code and output for the reanalysis of [raw data][ncbi] from the article [Lutomska LM et al., 2022][pubmed] for the article [Tretiakov EO et al., 2023][publication].
 
-What license are you using for the written content on your site? It is
-traditional to choose a [Creative Commons][cc] license for this type of content.
+file `CITATION` in the root of your Git repo that contains the citation information.
 
-[choose]: https://choosealicense.com/
-[cc]: https://creativecommons.org/choose/
+To see the results of the reanalysis please visit the [reanalysis website][website].
+The code in this analysis is covered by the
+[GNU General Public License v3.0][gpl] and the written content on this website
+is covered by a [Creative Commons CC-BY][cc] license.
 
-How should others cite your work? It's a convention to save a file `CITATION`
-in the root of your Git repo that contains the citation information.
+The publications mentioned and datasets used are covered by their respective 
+licenses and usage agreements. Please refer to those sources for details.
+
+[ncbi]: https://www.ncbi.nlm.nih.gov/bioproject/PRJNA847050
+[pubmed]: https://pubmed.ncbi.nlm.nih.gov/35802021
+[publication]: https://doi.org/
+[website]: https://eugot.github.io/PRJNA847050/index.html "Reanalysis website"
+[gpl]: https://choosealicense.com/licenses/gpl-3.0/ "GPL-3.0 License"
+[cc]: https://creativecommons.org/licenses/by/4.0/ "CC-BY License"
+

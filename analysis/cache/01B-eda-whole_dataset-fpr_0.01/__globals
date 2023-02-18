@@ -1,0 +1,27 @@
+params	
+load	::	%>%	~	bind_rows	c	cb_fpr	Create_CellBender_Merged_Seurat	here	map	Read_CellBender_h5_Multi_Directory	Read10X_h5_Multi_Directory	sort	sprintf
+unnamed-chunk-1	::	@	%>%	Add_CellBender_Diff	c	head
+unnamed-chunk-2	::	%>%	c	combined_srt	Median_Stats
+unnamed-chunk-3	::	%>%	c	CellBender_Feature_Diff	combined_srt	head
+pl-ambient-correction-qc	CellBender_Diff_Plot	feature_diff
+pl-vln-qc	.	[[<-	%>%	Add_Cell_Complexity_Seurat	Add_Mito_Ribo_Seurat	brewer.pal	c	high_cutoff_complexity	high_cutoff_gene	high_cutoff_pc_hb	high_cutoff_pc_mt	high_cutoff_pc_ribo	high_cutoff_umis	low_cutoff_gene	low_cutoff_umis	PercentageFeatureSet	QC_Plots_Complexity	QC_Plots_Feature	QC_Plots_Genes	QC_Plots_Mito	QC_Plots_UMIs	reseed	rev	rownames	Store_Palette_Seurat	str_to_title	wrap_plots
+pl-scatter-qc	&	combined_srt	FeatureScatter	high_cutoff_gene	high_cutoff_pc_mt	high_cutoff_pc_ribo	high_cutoff_umis	low_cutoff_gene	low_cutoff_umis	QC_Plot_GenevsFeature	QC_Plot_UMIvsGene	reseed	scale_x_log10	scale_y_log10
+pl-scatter-qc-comb	@	&	$	combined_srt	high_cutoff_gene	high_cutoff_pc_mt	high_cutoff_umis	low_cutoff_gene	QC_Plot_UMIvsGene	reseed	scale_x_log10	scale_y_log10
+pl-scatter-doublets-log-prob	@	@<-	%>%	$	$<-	any	c	colnames	if	ifelse	left_join	mutate	predicted_doublets	reseed	rownames<-	scrublet	Split_FeatureScatter	sum
+unnamed-chunk-4	!=	@	&	<	==	>	$	$<-	high_cutoff_complexity	high_cutoff_pc_hb	high_cutoff_pc_mt	high_cutoff_pc_ribo	high_cutoff_umis	ifelse	low_cutoff_gene	paste	QC	subset	table
+pl-init-dr-hvg	!	.	[[<-	%>%	^	>	c	FindVariableFeatures	gc	gene_int	GetAssayData	glimpse	head	housekeeping_mouse	invisible	kable	kable_material	LabelPoints	n_cores	ncol	NormalizeData	options	PercentageFeatureSet	plan	reseed	rownames	rowSums	set.seed	sex_genes	str_detect	stress_genes	unique	VariableFeaturePlot	VariableFeatures
+pl-init-dr-pca-genes	&	^	c	element_text	gc	hvg	invisible	n_cores	options	plan	reseed	RunPCA	ScaleData	set.seed	theme	VizDimLoadings
+update-gene-lists-rna	.	%<>%	ach	astroenriched_mouse	astromature_humans	astroprogenitor_humans	combined_srt	dopam	gaba	gene_int	genes.anatomy.jj	genes.embed	genes.jj	genes.nature	GetAssayData	glut	here	irs_genes	mcr_genes	neurotrans	np	npr	rownames	source	src_dir
+pl-init-dr-pca-heatmap	combined_srt	DimHeatmap
+pl-init-dr-pca-embedding	combined_srt	DimPlot_scCustom	reseed
+pl-init-dr-pca-elbow	combined_srt	ElbowPlot
+pl-init-dr-pca-jackstraw	[[	@	^	gc	invisible	JackStraw	JackStrawPlot	n_cores	npcs	options	plan	reseed	ScoreJackStraw	seq_along	set.seed
+pl-init-dr	[[	@	&	<=	>	$	combined_srt	pc_score	quantile	seq_along
+pl-init-dr-umap	^	FindNeighbors	gc	invisible	n_cores	options	plan	reseed	RunUMAP	selected_pcs	set.seed
+pl-init-dr-resolution	@	$	colnames	combined_srt	modularity_event_sampling	rownames<-
+pl-scatter-qc-comb-mito	@	&	$	combined_srt	high_cutoff_gene	high_cutoff_pc_mt	high_cutoff_umis	low_cutoff_gene	QC_Plot_UMIvsGene	reseed	scale_x_log10	scale_y_log10
+pl-scatter-qc-comb-ribo	@	&	$	combined_srt	high_cutoff_gene	high_cutoff_pc_ribo	high_cutoff_umis	low_cutoff_gene	low_cutoff_umis	QC_Plot_UMIvsGene	reseed	scale_x_log10	scale_y_log10
+pl-scatter-qc-comb-complexity	@	&	$	combined_srt	high_cutoff_complexity	high_cutoff_gene	high_cutoff_umis	low_cutoff_gene	low_cutoff_umis	QC_Plot_UMIvsGene	reseed	scale_x_log10	scale_y_log10
+pl-scatter-qc-comb-doublets	@	&	$	combined_srt	high_cutoff_doublet_score	high_cutoff_gene	high_cutoff_umis	low_cutoff_gene	low_cutoff_umis	QC_Plot_UMIvsGene	reseed	scale_x_log10	scale_y_log10
+pl-init-dr-clustree	@	%>%	^	FindClusters	gc	invisible	n_cores	options	plan	plot_clustree	ref_labels	reseed	resolutions	set.seed
+init-clustree-stability	@	combined_srt	plot_clustree

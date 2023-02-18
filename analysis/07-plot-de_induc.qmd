@@ -1,0 +1,862 @@
+---
+title: "Differential expression analysis of Arcuate Nucleus/Median Eminence astrocytes dataset from Lutomska LM et al 2022"
+author: "Evgenii O. Tretiakov"
+date: "`r Sys.Date()`"
+format:
+  html:
+    toc: true
+    df-print: paged
+    code-fold: true
+    fig-width: 14
+    fig-height: 12
+    fig-format: retina
+    fig-responsive: true
+    fig-dpi: 300
+execute:
+  keep-md: false
+  echo: true
+  error: false
+  message: false
+  warning: false
+  debug: false
+knitr:
+  opts_chunk:
+    autodep: true
+    fig.align: center
+    fig.retina: 2
+    fig.width: 14
+    fig.height: 12
+---
+
+```{r setup, include = FALSE}
+DOCNAME <- "de-astrocytes-between-conditions-astrocytes-dataset-from-lutomska-2022"
+NOW <- Sys.time()
+
+# Time chunks during knitting
+knitr::knit_hooks$set(timeit = function(before) {
+  if (before) {
+    print(paste("Start:", Sys.time()))
+    NOW <<- Sys.time()
+  } else {
+    print(paste("Stop:", Sys.time()))
+    print(Sys.time() - NOW)
+  }
+})
+
+knitr::knit_hooks$set(debug = function(before, options, envir) {
+  if (!before) {
+    message(
+      paste(names(envir), as.list(envir),
+        sep = " = ", collapse = "\n"
+      )
+    )
+  }
+})
+
+knitr::opts_chunk$set(
+  cache          = FALSE,
+  dev            = c("png", "pdf"),
+  timeit         = TRUE
+)
+```
+
+## Load data and setup parameters
+
+```{r libraries, cache=FALSE}
+# Load tidyverse infrastructure packages
+suppressPackageStartupMessages({
+  library(future)
+  library(here)
+  library(tidyverse)
+  library(magrittr)
+  library(stringr)
+  library(skimr)
+  library(RColorBrewer)
+  library(viridis)
+})
+
+
+# Load packages for scRNA-seq analysis and visualisation
+suppressPackageStartupMessages({
+  library(ggplot2)
+  library(cowplot)
+  library(patchwork)
+  library(ggstatsplot)
+  library(dabestr)
+  library(sceasy)
+  library(anndata)
+  library(Seurat)
+  library(SeuratDisk)
+  library(SeuratWrappers)
+  library(schex)
+  library(scCustomize)
+})
+
+sc <- import("scanpy", convert = FALSE)
+```
+
+### Set paths
+
+```{r paths}
+src_dir <- here("code")
+data_dir <- here("data")
+output_dir <- here("output")
+plots_dir <- here(output_dir, "figures/")
+tables_dir <- here(output_dir, "tables/")
+```
+
+### Load helper functions and gene-sets
+
+```{r source, cache = FALSE}
+source(here(src_dir, "genes.R"))
+source(here(src_dir, "functions.R"))
+```
+
+### Set fixed variables
+
+```{r params-computation, cache = FALSE}
+# set seed
+reseed <- 42
+set.seed(seed = reseed)
+
+# Parameters for parallel execution
+n_cores <- 32
+plan("multisession", workers = n_cores)
+options(
+  future.globals.maxSize = 100000 * 1024^2,
+  future.rng.onMisuse = "ignore"
+)
+plan()
+
+
+# ggplot2 theme
+theme_set(ggmin::theme_powerpoint())
+```
+
+```{r params}
+bioproject <- "PRJNA847050"
+project <- "lutomska2022-Arc"
+cb_fpr <- 0.001
+low_cutoff_gene <- 500
+high_cutoff_gene <- NULL
+high_cutoff_gene <- 10000
+low_cutoff_umis <- NULL
+low_cutoff_umis <- -Inf
+high_cutoff_umis <- 45000
+high_cutoff_pc_mt <- 25
+high_cutoff_pc_ribo <- 20
+high_cutoff_pc_hb <- 0.1
+high_cutoff_doublet_score <- 0.33
+high_cutoff_complexity <- 0.8
+```
+
+## Load selected astrocytes data from Lutomska LM et al (2022)
+
+```{r load-data, cache = FALSE}
+anndata <- sc$read(here(
+  data_dir,
+  sprintf("class_cello/%s-whole_dataset-%s-cello_annotation.h5ad", bioproject, cb_fpr)
+))
+```
+
+### Convert adata object to R AnnDataR6 object.
+```{r convert-to-r}
+adata <- py_to_r(anndata)
+class(adata)
+class(adata$X)
+adata
+```
+
+```{r convert-to-seurat}
+srt_path <- here(
+  data_dir,
+  sprintf("%s-whole_dataset-%s-cello_annotation.h5ad", bioproject, cb_fpr)
+)
+
+expr_mtx <- t(as.matrix(adata$raw$X))
+colnames(expr_mtx) <- rownames(adata$X)
+rownames(expr_mtx) <- adata$var_names
+srt <- CreateSeuratObject(
+  expr_mtx,
+  assay = "RNA",
+  project = "individual_hypothalamic_nuclei_astrocytes_evaluation_dataset",
+  meta.data = as.data.frame(adata$obs),
+  row.names = colnames(adata$X)
+)
+
+Idents(srt) <- "ora_celltype"
+srt <- subset(srt, idents = c("Astrocytes"))
+
+Idents(srt) <- "expbtch"
+scarc <- subset(srt, idents = c("control", "hfd_15"))
+srt <- subset(srt, idents = c("control", "hfd_05"))
+
+print(srt)
+rm(adata, anndata, expr_mtx)
+invisible(gc())
+```
+
+```{r read-de-results}
+markers_region <-
+  readr::read_csv(
+    here(
+      "data",
+      "individual_hypothalamic_nuclei_astrocytes_evaluation_dataset-all-marker-genes-astrotrap.csv"
+    ),
+    col_types = cols(
+      p_val = col_double(),
+      avg_log2FC = col_double(),
+      pct.1 = col_double(),
+      pct.2 = col_double(),
+      p_val_adj = col_double(),
+      cluster = col_character(),
+      gene = col_character(),
+      pct_diff = col_double()
+    )
+  )
+```
+
+```{r filter-de-results}
+markers_region <- markers_region %>%
+  filter(pct.2 < 0.3, pct_diff > 0.1) %>%
+  group_by(cluster)
+
+at_top_50 <- Extract_Top_Markers(marker_dataframe = markers_region, num_genes = 50, group_by = "cluster", gene_column = "gene", rank_by = "avg_log2FC", make_unique = TRUE, named_vector = FALSE)
+
+markers_region2 <- markers_region %>%
+  filter(gene %in% c(nmr, npr, transcription_factors, mitochondrial)) %>%
+  group_by(cluster)
+
+at_top_50s <- Extract_Top_Markers(marker_dataframe = markers_region2, num_genes = 50, group_by = "cluster", gene_column = "gene", rank_by = "avg_log2FC", make_unique = TRUE, named_vector = FALSE)
+
+
+selected_genes <- c(
+  "Insr", "Meis1", "Igf1r", "Nrf1", "Prlr", "Camk1d", "Lars2", "Cacna2d3", # 0 ARC
+  "Dcn", "Ptgds", "Nupr1", "Igfbp2", "Nrarp", "Ctnna2", "Ldlr", "Mmp14", # 1 LHA
+  "Nkx6-2", "Cirbp", "Selenop", # 2 MnPO
+  "Foxg1", "Crym", "Sema3c", "Meis2", "Dbp", # 3 POA
+  "Egr1", "Ttr", "Btg2", "Mbnl3", "Pgf", "Irs4", "Gpr101", "Nr3c2", "Agtr1", # 4 PVN
+  "Rfx4", "Dbx2", "Prokr2", "Cebpb", "Zic1", "Zic2", "Zic5", "Ccn1", "Gata4", "Klf4", "Klf10", # 5 SCN
+  "Tbx3", "Fis1", "Ndn", "Psmc5", "Drap1", "Pcsk1n", "Rtn1", # 6 VMH
+  "Emx2", "Sgip1", "Myoc", "Hivep3", "Dcc", "Ralyl", "Ltbp1", "Egfem1", # 7 VPH
+  "Klf4", "Atf3", "Nrg1", "Cdk8", "Grpr", "Qrfpr", "Hcrtr1", "Hcrtr2", "Tacr1", "Trhr", "Tshr",
+  "Gfap", "Fgf1", "Fgfr3", "Hepacam", "Hif1", "Htra1", "Lxn", "Ndrg2", "Ntn1", "Nfia", "Slit2", "Aqp4", "S100a1", "S100a6", "S100b", "Slc1a2", "Slc1a3", "Slc38a1", "Vegfa", "Fos", "Fosb", "Jun", "Junb", "Jund", "Ier2", "Socs3", "Pde10a", "Fbln5", "Otp", "Nr4a1", "Six6", "Emx2", "Myt1l", "Adcyap1r1", "Ghr", "Ntrk2", "Npy1r", "Gria1", "Gria2", "Grin2b", "Grin3a", "Grm3", "Grm7", "Gabrb1", "Gabbr1", "Gabbr2", "Rfx3", "Nr5a1", "Nkx2-1", "Otx2", "Bclaf1", "Foxo3", "Dlx1", "Lrrc6", "Peg3", "Elavl2", "Isl1", "Zfp36", "Otx1", "Pitx2",
+  "2610507B11Rik",
+  "5430405H02Rik",
+  "9630014M24Rik",
+  "Abi2",
+  "Adam22",
+  "AI480526",
+  "Ank3",
+  "Ap3m1",
+  "Aplp1",
+  "App",
+  "Araf",
+  "Arhgap12",
+  "Arhgef10l",
+  "Arhgef28",
+  "Arpp21",
+  "Arrb1",
+  "Arsb",
+  "Asic2",
+  "Atg10",
+  "Atp11b",
+  "Atp1b1",
+  "Atp1b3",
+  "Atp6v1b2",
+  "Azin1",
+  "B3galt2",
+  "Basp1",
+  "Bicd1",
+  "Bmt2",
+  "Btg2",
+  "Cacna1a",
+  "Camta1",
+  "Car10",
+  "Ccser1",
+  "Cd38",
+  "Cdc26",
+  "Cdc42",
+  "Chd6",
+  "Clstn1",
+  "Coro2b",
+  "Cry2",
+  "Csmd2",
+  "Csnk1g3",
+  "Cyb5b",
+  "Dcc",
+  "Ddrgk1",
+  "Ddx6",
+  "Dennd5a",
+  "Dlat",
+  "Dlg2",
+  "Dlg5",
+  "Dnm2",
+  "Dock9",
+  "Dpp10",
+  "Dscam",
+  "Dync1i1",
+  "Dzank1",
+  "Dzip1",
+  "Eef2",
+  "Efr3b",
+  "Egfem1",
+  "Epas1",
+  "Epha5",
+  "Esco1",
+  "Fam107a",
+  "Fam155a",
+  "Fam171a1",
+  "Fam193a",
+  "Fam219a",
+  "Fbxw2",
+  "Fer",
+  "Fnbp1l",
+  "Fos",
+  "Gaa",
+  "Gabrb2",
+  "Gabrb3",
+  "Gfap",
+  "Gm1604a",
+  "Gnas",
+  "Gnl3l",
+  "Gpr158",
+  "Gprasp1",
+  "Gria4",
+  "Grik4",
+  "Hk1",
+  "Hmbox1",
+  "Hsd17b12",
+  "Id4",
+  "Ipo9",
+  "Jun",
+  "Kcnip4",
+  "Kif5a",
+  "Klc1",
+  "Klhl7",
+  "Lcor",
+  "Lhfpl3",
+  "Lix1",
+  "Lrrc8a",
+  "Luzp1",
+  "Ly6h",
+  "Map2k1",
+  "Map4k5",
+  "Map7d2",
+  "Mapk8",
+  "Marcksl1",
+  "Marf1",
+  "Megf9",
+  "Mia2",
+  "Mindy2",
+  "Mmp16",
+  "mt-Cytb",
+  "mt-Nd1",
+  "mt-Nd2",
+  "mt-Nd4",
+  "Mthfd2l",
+  "Mtss2",
+  "Ncan",
+  "Ncl",
+  "Ndufc2",
+  "Nfasc",
+  "Nfix",
+  "Nfs1",
+  "Nhs",
+  "Nkx6-2",
+  "Nmnat2",
+  "Nsf",
+  "Nsg2",
+  "Nxph1",
+  "Ocrl",
+  "Pam",
+  "Paqr6",
+  "Parp6",
+  "Pcbp2",
+  "Pcsk1n",
+  "Pdgfd",
+  "Pdss1",
+  "Pdxdc1",
+  "Pdzph1",
+  "Pea15a",
+  "Peg3",
+  "Pet100",
+  "Pi4ka",
+  "Pkia",
+  "Podxl2",
+  "Prr14",
+  "Psd2",
+  "Rab11fip4",
+  "Rab2a",
+  "Rab6b",
+  "Rac1",
+  "Rad23b",
+  "Ralyl",
+  "Rbfox1",
+  "Rbms3",
+  "Rftn2",
+  "Rgs7bp",
+  "Rpl22",
+  "Rpl30",
+  "Rpl37a",
+  "Rps14",
+  "Rps6",
+  "Rpsa",
+  "Rtn1",
+  "Samd12",
+  "Scarb2",
+  "Scd1",
+  "Selenot",
+  "Sfi1",
+  "Shisa6",
+  "Ski",
+  "Slc12a6",
+  "Slc25a3",
+  "Smarcc1",
+  "Snhg14",
+  "Snrk",
+  "Snrpn",
+  "Sntg1",
+  "Snx21",
+  "Spcs2",
+  "Spop",
+  "Spred2",
+  "Stk3",
+  "Stxbp5l",
+  "Taf1",
+  "Tafa1",
+  "Tbc1d5",
+  "Tbc1d9b",
+  "Tef",
+  "Tenm2",
+  "Tenm4",
+  "Thra",
+  "Thrsp",
+  "Timp2",
+  "Tmem106b",
+  "Tmem245",
+  "Tmsb4x",
+  "Tmx4",
+  "Tnr",
+  "Tom1",
+  "Tsix",
+  "Tspan13",
+  "Ttc3",
+  "Ube2l3",
+  "Ube2r2",
+  "Vps13d",
+  "Vps35l",
+  "Vwa8",
+  "Wasf3",
+  "Wdr26",
+  "Ywhae",
+  "Zfp644",
+  "Zwint"
+)
+
+selected_genes <- unique(c(selected_genes, at_top_50, at_top_50s, mitochondrial))
+
+selected_genes <- selected_genes[selected_genes %in% rownames(GetAssayData(object = srt, slot = "data"))]
+```
+
+## 5 days of HFD
+
+```{r scale-data-05}
+srt <- NormalizeData(srt)
+srt <- FindVariableFeatures(srt, selection.method = "vst", nfeatures = 5000)
+all.genes <- rownames(srt)
+srt <- ScaleData(srt, features = selected_genes)
+```
+
+```{r find-marker-genes-05}
+invisible(gc())
+plan("sequential")
+invisible(gc())
+plan("multisession", workers = n_cores)
+all_markers_genes <-
+  FindAllMarkers(object = srt, verbose = T, test.use = "LR", latent.vars = c("nFeature_RNA"), only.pos = F, min.pct = 0, logfc.threshold = 0, random.seed = reseed, min.cells.feature = 1, return.thresh = 1, features = selected_genes)
+all_markers_genes <-
+  all_markers_genes %>%
+  Add_Pct_Diff()
+
+write_csv(all_markers_genes, here(data_dir, sprintf("%s-all-marker-genes-condition05-goi.csv", bioproject)))
+all_markers_genes
+```
+
+### Dotplots 5 days of HFD
+
+```{r extract-top-30-genes-05}
+all_markers_genes2 <- all_markers_genes %>%
+  filter(
+    gene %in% c(npr, nmr, transcription_factors),
+    pct_diff >= 0.1,
+    pct.1 >= 0.333
+  ) %>%
+  arrange(desc(avg_log2FC))
+
+at_top_5 <- Extract_Top_Markers(marker_dataframe = all_markers_genes, num_genes = 5, group_by = "cluster", gene_column = "gene", rank_by = "avg_log2FC", make_unique = TRUE, named_vector = FALSE)
+at_top_30 <- Extract_Top_Markers(marker_dataframe = all_markers_genes, num_genes = 30, group_by = "cluster", gene_column = "gene", rank_by = "avg_log2FC")
+at_top_10s <- Extract_Top_Markers(marker_dataframe = all_markers_genes2, num_genes = 10, group_by = "cluster", gene_column = "gene", rank_by = "avg_log2FC", make_unique = TRUE, named_vector = FALSE)
+at_top_30s <- Extract_Top_Markers(marker_dataframe = all_markers_genes2, num_genes = 30, group_by = "cluster", gene_column = "gene", rank_by = "avg_log2FC")
+```
+
+#### unselected markers 5 days of HFD
+
+```{r plt-dotplot-dendrogram-at_genes-05, fig.width=6, fig.height=16}
+DotPlot_scCustom(seurat_object = srt, colors_use = viridis(n = 30, alpha = .75, direction = -1, option = "E"), features = at_top_5, flip_axes = T, x_lab_rotate = TRUE)
+```
+
+#### selected markers 5 days of HFD
+
+```{r plt-dotplot-dendrogram-at_sgenes-05, fig.width=6, fig.height=16}
+DotPlot_scCustom(seurat_object = srt, colors_use = viridis(n = 30, alpha = .75, direction = -1, option = "E"), features = at_top_10s, flip_axes = T, x_lab_rotate = TRUE)
+```
+
+#### Receptors of neuropeptides markers 5 days of HFD
+
+```{r plt-dotplot-dendrogram-at_genes-npr-05, fig.width=6, fig.height=18}
+DotPlot_scCustom(seurat_object = srt, colors_use = viridis(n = 30, alpha = .75, direction = -1, option = "E"), features = npr[npr %in% rownames(GetAssayData(object = srt, slot = "scale.data"))], flip_axes = T, x_lab_rotate = TRUE)
+```
+
+#### Receptors of neuromediators markers 5 days of HFD
+
+```{r plt-dotplot-dendrogram-at_genes-nmr-05, fig.width=6, fig.height=24}
+DotPlot_scCustom(seurat_object = srt, colors_use = viridis(n = 30, alpha = .75, direction = -1, option = "E"), features = nmr[nmr %in% rownames(GetAssayData(object = srt, slot = "scale.data"))], flip_axes = T, x_lab_rotate = TRUE)
+```
+
+#### Other markers 5 days of HFD
+
+```{r plt-dotplot-dendrogram-at_genes-adgen-05, fig.width=6, fig.height=24}
+DotPlot_scCustom(seurat_object = srt, colors_use = viridis(n = 30, alpha = .75, direction = -1, option = "E"), features = genes.embed[genes.embed %in% rownames(GetAssayData(object = srt, slot = "scale.data"))], flip_axes = T, x_lab_rotate = TRUE)
+```
+
+#### Mitochondrial markers 5 days of HFD
+
+```{r plt-dotplot-dendrogram-at_genes-mitochondrial-05, fig.width=6, fig.height=24}
+DotPlot_scCustom(seurat_object = srt, colors_use = viridis(n = 30, alpha = .75, direction = -1, option = "E"), features = mitochondrial[mitochondrial %in% rownames(GetAssayData(object = srt, slot = "scale.data"))], flip_axes = T, x_lab_rotate = TRUE)
+```
+
+```{r plt-stvlnplot-at_genes-mitochondrial-05, fig.width=4, fig.height=32}
+Stacked_VlnPlot(seurat_object = srt, features = mitochondrial[mitochondrial %in% rownames(GetAssayData(object = srt, slot = "scale.data"))], x_lab_rotate = TRUE)
+```
+
+### Heatmap selected markers 5 days of HFD
+
+```{r at_heatmap-05, fig.width=18, fig.height=18}
+DoHeatmap(srt, group.by = "expbtch", group.colors = c("0" = "black", "1" = "purple", "2" = "blue", "3" = "darkgreen", "4" = "green", "5" = "yellow", "6" = "red", "7" = "grey"), features = at_top_10s, size = 4, angle = 0) + NoLegend()
+```
+
+### Gardner-Altman plot for selected genes of 5 days of HFD
+
+```{r plt-dabest05, fig.width=6, fig.height=7}
+df.test <-
+  GetAssayData(object = srt, slot = "data") %>%
+  as.data.frame() %>%
+  t() %>%
+  bind_cols(srt@meta.data) %>%
+  select(c("cell_name", "expbtch", selected_genes))
+
+glimpse(df.test)
+
+# for (x in selected_genes) {
+#   df.two.group.unpaired <-
+#       df.test %>%
+#       select(
+#           x,
+#           expbtch,
+#           cell_name
+#           )
+
+#   two.group.unpaired <-
+#       df.two.group.unpaired |>
+#       dabest(
+#           x = expbtch,
+#           y = x,
+#           idx = c(
+#               "control",
+#               "hfd_05"
+#               ),
+#           paired = FALSE,
+#           id.column = cell_name
+#           )
+
+#   two.group.unpaired.meandiff <- mean_diff(two.group.unpaired)
+#   two.group.unpaired.meandiff
+#   plot(two.group.unpaired.meandiff)
+# }
+```
+
+### MA-plot 5 days of HFD
+
+```{r plt-ma05, fig.width=10, fig.height=6}
+target <- "control"
+geneLogAverage <- rowMeans(GetAssayData(subset(srt, idents = target), "data", "RNA"))
+all_markers_genes$logA <- geneLogAverage[all_markers_genes$gene]
+
+
+plt_genes <- all_markers_genes %>%
+  filter(cluster == target) %>%
+  mutate(gene = if_else(condition = (avg_log2FC >= 0.2 | avg_log2FC <= -0.2) & (pct_diff >= 0.015 | pct_diff <= -0.015),
+    gene, ""
+  ))
+
+subselected_genes <- c(
+  "Insr", "Meis1", "Igf1r", "Nrf1", "Prlr", "Camk1d", "Lars2", "Cacna2d3", # 0 ARC
+  "Dcn", "Ptgds", "Nupr1", "Igfbp2", "Nrarp", "Ctnna2", "Ldlr", "Mmp14", # 1 LHA
+  "Nkx6-2", "Cirbp", "Selenop", # 2 MnPO
+  "Foxg1", "Crym", "Sema3c", "Meis2", "Dbp", # 3 POA
+  "Egr1", "Ttr", "Btg2", "Mbnl3", "Pgf", "Irs4", "Gpr101", "Nr3c2", "Agtr1", # 4 PVN
+  "Rfx4", "Dbx2", "Prokr2", "Cebpb", "Zic1", "Zic2", "Zic5", "Ccn1", "Gata4", "Klf4", "Klf10", # 5 SCN
+  "Tbx3", "Fis1", "Ndn", "Psmc5", "Drap1", "Pcsk1n", "Rtn1", # 6 VMH
+  "Emx2", "Sgip1", "Myoc", "Hivep3", "Dcc", "Ralyl", "Ltbp1", "Egfem1", # 7 VPH
+  "Klf4", "Atf3", "Nrg1", "Cdk8", "Grpr", "Qrfpr", "Hcrtr1", "Hcrtr2", "Tacr1", "Trhr", "Tshr",
+  "Gfap", "Fgf1", "Fgfr3", "Hepacam", "Hif1", "Htra1", "Lxn", "Ndrg2", "Ntn1", "Nfia", "Slit2", "Aqp4", "S100a1", "S100a6", "S100b", "Slc1a2", "Slc1a3", "Slc38a1", "Vegfa", "Fos", "Fosb", "Jun", "Junb", "Jund", "Ier2", "Socs3", "Pde10a", "Fbln5", "Otp", "Nr4a1", "Six6", "Emx2", "Myt1l", "Adcyap1r1", "Ghr", "Ntrk2", "Npy1r", "Gria1", "Gria2", "Grin2b", "Grin3a", "Grm3", "Grm7", "Gabrb1", "Gabbr1", "Gabbr2", "Rfx3", "Nr5a1", "Nkx2-1", "Otx2", "Bclaf1", "Foxo3", "Dlx1", "Lrrc6", "Peg3", "Elavl2", "Isl1", "Zfp36", "Otx1", "Pitx2"
+)
+
+plt_genes_const <- all_markers_genes %>%
+  filter(cluster == target) %>%
+  mutate(gene = if_else(condition = gene %in% subselected_genes & (avg_log2FC < 0.2 & avg_log2FC > -0.2) & (pct_diff < 0.015 & pct_diff > -0.015),
+    gene, ""
+  ))
+
+my_pal <- function(range = c(1, 6)) {
+  force(range)
+  function(x) scales::rescale(x, to = range, from = c(0, 1))
+}
+
+plt_genes %>%
+  ggplot(
+    .,
+    aes(
+      x = logA,
+      y = avg_log2FC,
+      label = gene,
+      size = pct.1
+    )
+  ) +
+  geom_point(alpha = 0.7, colour = if_else(condition = (plt_genes$avg_log2FC >= 0.2 | plt_genes$avg_log2FC <= -0.2) & (plt_genes$pct_diff >= 0.015 | plt_genes$pct_diff <= -0.015), "orangered", "grey50")) +
+  continuous_scale(
+    aesthetics = c("size", "point.size"), scale_name = "size",
+    palette = my_pal(c(2, 9)),
+    guide = guide_legend(override.aes = list(label = "")) # hide "a" in legend
+  ) +
+  ggrepel::geom_text_repel(
+    aes(point.size = pct.1), # data point size
+    size = 6, # font size in the text labels
+    point.padding = 0, # additional padding around each point
+    min.segment.length = 0, # draw all line segments
+    max.time = 2, max.iter = 1e6, # stop after 1 second, or after 100,000 iterations
+    seed = reseed,
+    max.overlaps = Inf,
+    box.padding = 0.5
+  ) +
+  theme_light()
+```
+
+### Volcano-plot 5 days of HFD
+
+```{r plt-volcano-05, fig.width=10, fig.height=8}
+plt_genes %>%
+  ggplot(
+    .,
+    aes(
+      x = avg_log2FC,
+      y = 1 / p_val_adj,
+      col = logA,
+      label = gene,
+      size = pct.1
+    )
+  ) +
+  scale_y_log10() +
+  geom_point(alpha = 0.7, colour = if_else(condition = plt_genes$avg_log2FC < 0.2 & plt_genes$avg_log2FC > -0.2, "grey50", "orangered")) +
+  continuous_scale(
+    aesthetics = c("size", "point.size"), scale_name = "size",
+    palette = my_pal(c(2, 9)),
+    guide = guide_legend(override.aes = list(label = "")) # hide "a" in legend
+  ) +
+  ggrepel::geom_text_repel(
+    aes(point.size = pct.1), # data point size
+    size = 6, # font size in the text labels
+    point.padding = 0, # additional padding around each point
+    min.segment.length = 0, # draw all line segments
+    max.time = 2, max.iter = 1e6, # stop after 1 second, or after 100,000 iterations
+    seed = reseed,
+    max.overlaps = Inf,
+    box.padding = 0.5
+  ) +
+  theme_light()
+```
+
+### Plot effect size to sample size delta 5 days of HFD
+
+```{r plt-efsss05, fig.width=10, fig.height=8}
+plt_genes %>%
+  ggplot(
+    .,
+    aes(
+      x = avg_log2FC,
+      y = pct_diff,
+      col = -log10(p_val_adj),
+      label = gene,
+      size = pct.1
+    )
+  ) +
+  xlim(c(-1.5, 1.5)) +
+  ylim(c(-0.2, 0.2)) +
+  geom_vline(
+    xintercept = c(-0.2, 0.2),
+    linetype = "dashed",
+    colour = "grey80",
+    size = 0.3
+  ) +
+  geom_hline(
+    yintercept = c(-0.015, 0.015),
+    linetype = "dashed",
+    colour = "grey80",
+    size = 0.3
+  ) +
+  geom_vline(
+    xintercept = 0,
+    linetype = "solid",
+    colour = "black",
+    size = 0.5
+  ) +
+  geom_hline(
+    yintercept = 0,
+    linetype = "solid",
+    colour = "black",
+    size = 0.5
+  ) +
+  geom_point(alpha = 0.7, colour = if_else(condition = (plt_genes$avg_log2FC >= 0.2 | plt_genes$avg_log2FC <= -0.2) & (plt_genes$pct_diff >= 0.015 | plt_genes$pct_diff <= -0.015), "orangered", "grey50")) +
+  continuous_scale(
+    aesthetics = c("size", "point.size"), scale_name = "size",
+    palette = my_pal(c(2, 9)),
+    guide = guide_legend(override.aes = list(label = "")) # hide "a" in legend
+  ) +
+  ggrepel::geom_text_repel(
+    aes(point.size = pct.1), # data point size
+    size = 6, # font size in the text labels
+    point.padding = 0, # additional padding around each point
+    min.segment.length = 0, # draw all line segments
+    max.time = 2, max.iter = 1e6, # stop after 1 second, or after 100,000 iterations
+    seed = reseed,
+    max.overlaps = Inf,
+    box.padding = 0.5
+  ) +
+  theme_classic()
+```
+
+
+
+
+
+```{r plt-efsss-non-induc05, fig.width=10, fig.height=8}
+plt_genes_const %>%
+  ggplot(
+    .,
+    aes(
+      x = avg_log2FC,
+      y = pct_diff,
+      col = -log10(p_val_adj),
+      label = gene,
+      size = pct.1
+    )
+  ) +
+  xlim(c(-0.25, 0.25)) +
+  ylim(c(-0.02, 0.02)) +
+  geom_vline(
+    xintercept = c(-0.2, 0.2),
+    linetype = "dashed",
+    colour = "grey80",
+    size = 0.3
+  ) +
+  geom_hline(
+    yintercept = c(-0.015, 0.015),
+    linetype = "dashed",
+    colour = "grey80",
+    size = 0.3
+  ) +
+  geom_vline(
+    xintercept = 0,
+    linetype = "solid",
+    colour = "black",
+    size = 0.5
+  ) +
+  geom_hline(
+    yintercept = 0,
+    linetype = "solid",
+    colour = "black",
+    size = 0.5
+  ) +
+  geom_point(alpha = 0.7, colour = if_else(condition = (plt_genes$avg_log2FC < 0.2 & plt_genes$avg_log2FC > -0.2) &
+    (plt_genes$pct_diff < 0.015 & plt_genes$pct_diff > -0.015), "navy", "grey50")) +
+  continuous_scale(
+    aesthetics = c("size", "point.size"), scale_name = "size",
+    palette = my_pal(c(2, 9)),
+    guide = guide_legend(override.aes = list(label = "")) # hide "a" in legend
+  ) +
+  ggrepel::geom_text_repel(
+    aes(point.size = pct.1), # data point size
+    size = 6, # font size in the text labels
+    point.padding = 0, # additional padding around each point
+    min.segment.length = 0, # draw all line segments
+    max.time = 2, max.iter = 1e6, # stop after 1 second, or after 100,000 iterations
+    seed = reseed,
+    max.overlaps = Inf,
+    box.padding = 0.5
+  ) +
+  theme_classic()
+```
+
+```{r plt-sds-non-induc05, fig.width=10, fig.height=8}
+plt_genes_const %>%
+  ggplot(
+    .,
+    aes(
+      x = pct.1,
+      y = pct_diff,
+      col = -log10(p_val_adj),
+      label = gene,
+      size = avg_log2FC
+    )
+  ) +
+  geom_vline(
+    xintercept = 0,
+    linetype = "solid",
+    colour = "black",
+    size = 0.5
+  ) +
+  geom_hline(
+    yintercept = 0,
+    linetype = "solid",
+    colour = "black",
+    size = 0.5
+  ) +
+  geom_point(alpha = 0.7, colour = if_else(condition = (plt_genes$avg_log2FC < 0.2 & plt_genes$avg_log2FC > -0.2) &
+    (plt_genes$pct_diff < 0.015 & plt_genes$pct_diff > -0.015), "darkgreen", "grey50")) +
+  continuous_scale(
+    aesthetics = c("size", "point.size"), scale_name = "size",
+    palette = my_pal(c(2, 9)),
+    guide = guide_legend(override.aes = list(label = "")) # hide "a" in legend
+  ) +
+  ggrepel::geom_text_repel(
+    aes(point.size = avg_log2FC), # data point size
+    size = 6, # font size in the text labels
+    point.padding = 0, # additional padding around each point
+    min.segment.length = 0, # draw all line segments
+    max.time = 2, max.iter = 1e6, # stop after 1 second, or after 100,000 iterations
+    seed = reseed,
+    max.overlaps = Inf,
+    box.padding = 0.5
+  ) +
+  theme_light()
+```
+
+## Session information
+
+```{r session-info, cache = FALSE}
+sI <- sessioninfo::session_info()
+sI$loadedOnly <- NULL
+print(sI, locale = FALSE)
+```
+

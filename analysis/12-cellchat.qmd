@@ -1,0 +1,586 @@
+---
+title: "CellChat signalling analysis of Arcuate Nucleus/Median Eminence astrocytes dataset from Lutomska LM et al 2022"
+author: "Evgenii O. Tretiakov"
+date: "`r Sys.Date()`"
+format:
+  html:
+    toc: true
+    df-print: paged
+    code-fold: true
+    fig-width: 14
+    fig-height: 12
+    fig-format: retina
+    fig-responsive: true
+    fig-dpi: 300
+execute:
+  keep-md: false
+  echo: true
+  error: false
+  message: false
+  warning: false
+  debug: false
+knitr:
+  opts_chunk:
+    autodep: true
+    fig.align: center
+    fig.retina: 2
+    fig.width: 14
+    fig.height: 12
+---
+
+```{r setup, include = FALSE}
+DOCNAME <- "cellchat-astrocytes-between-conditions-astrocytes-dataset-from-lutomska-2022"
+NOW <- Sys.time()
+
+# Time chunks during knitting
+knitr::knit_hooks$set(timeit = function(before) {
+  if (before) {
+    print(paste("Start:", Sys.time()))
+    NOW <<- Sys.time()
+  } else {
+    print(paste("Stop:", Sys.time()))
+    print(Sys.time() - NOW)
+  }
+})
+
+knitr::knit_hooks$set(debug = function(before, options, envir) {
+  if (!before) {
+    message(
+      paste(names(envir), as.list(envir),
+        sep = " = ", collapse = "\n"
+      )
+    )
+  }
+})
+
+knitr::opts_chunk$set(
+  cache          = FALSE,
+  dev            = c("png", "pdf"),
+  timeit         = TRUE
+)
+```
+
+## Load data and setup parameters
+
+```{r libraries, cache=FALSE}
+# Load tidyverse infrastructure packages
+suppressPackageStartupMessages({
+  library(future)
+  library(here)
+  library(tidyverse)
+  library(magrittr)
+  library(stringr)
+  library(skimr)
+  library(RColorBrewer)
+  library(viridis)
+})
+
+
+# Load packages for scRNA-seq analysis and visualisation
+suppressPackageStartupMessages({
+  library(ggplot2)
+  library(cowplot)
+  library(patchwork)
+  library(ggstatsplot)
+  library(ComplexHeatmap)
+  library(sceasy)
+  library(anndata)
+  library(Seurat)
+  library(SeuratDisk)
+  library(SeuratWrappers)
+  library(CellChat)
+  library(scCustomize)
+})
+
+sc <- import("scanpy", convert = FALSE)
+```
+
+### Set paths
+
+```{r paths}
+src_dir <- here("code")
+data_dir <- here("data")
+output_dir <- here("output")
+plots_dir <- here(output_dir, "figures/")
+tables_dir <- here(output_dir, "tables/")
+```
+
+### Load helper functions and gene-sets
+
+```{r source, cache = FALSE}
+source(here(src_dir, "genes.R"))
+source(here(src_dir, "functions.R"))
+```
+
+### Set fixed variables
+
+```{r params-computation, cache = FALSE}
+# set seed
+reseed <- 42
+set.seed(seed = reseed)
+
+# Parameters for parallel execution
+n_cores <- 8
+plan("multisession", workers = n_cores)
+options(
+  future.globals.maxSize = 200000 * 1024^2,
+  future.rng.onMisuse = "ignore"
+)
+plan()
+
+
+# ggplot2 theme
+theme_set(ggmin::theme_powerpoint())
+```
+
+```{r params}
+bioproject <- "PRJNA847050"
+project <- "lutomska2022-Arc"
+cb_fpr <- 0.001
+low_cutoff_gene <- 500
+high_cutoff_gene <- NULL
+high_cutoff_gene <- 10000
+low_cutoff_umis <- NULL
+low_cutoff_umis <- -Inf
+high_cutoff_umis <- 45000
+high_cutoff_pc_mt <- 25
+high_cutoff_pc_ribo <- 20
+high_cutoff_pc_hb <- 0.1
+high_cutoff_doublet_score <- 0.33
+high_cutoff_complexity <- 0.8
+```
+
+## Load selected astrocytes data from Lutomska LM et al (2022)
+
+```{r load-data, cache = FALSE}
+anndata <- sc$read(here(
+  data_dir,
+  sprintf("class_cello/%s-whole_dataset-%s-cello_annotation.h5ad", bioproject, cb_fpr)
+))
+
+astrodata <- sc$read(here(
+  data_dir,
+  sprintf("class_cello/%s-astrocytes_dataset-%s-initial_selection.h5ad", bioproject, cb_fpr)
+))
+
+astrocytes_idx <- py_to_r(astrodata$obs_names)
+```
+
+### Convert adata object to R AnnDataR6 object.
+```{r convert-to-r}
+adata <- py_to_r(anndata)
+class(adata)
+class(adata$X)
+adata
+```
+
+```{r convert-to-seurat}
+srt_path <- here(
+  data_dir,
+  sprintf("%s-whole_dataset-%s-cello_annotation.h5ad", bioproject, cb_fpr)
+)
+
+expr_mtx <- t(as.matrix(adata$raw$X))
+colnames(expr_mtx) <- rownames(adata$X)
+rownames(expr_mtx) <- adata$var_names
+srt <- CreateSeuratObject(
+  expr_mtx,
+  assay = "RNA",
+  project = "individual_hypothalamic_nuclei_astrocytes_evaluation_dataset",
+  meta.data = as.data.frame(adata$obs),
+  row.names = colnames(adata$X)
+)
+
+Idents(srt) <- "ora_celltype"
+srt <- subset(srt, idents = c("Astrocytes", "Neurons"))
+
+Idents(srt) <- "expbtch"
+srt_keep <- srt
+srt <- subset(srt, idents = c("control", "hfd_05"))
+srt$libname <- factor(srt$expbtch, levels = c("control" = "control", "HFHSD" = "hfd_05"))
+Idents(srt) <- "libname"
+Idents(srt) <- "k_tree"
+
+print(srt)
+rm(adata, astrodata, anndata, expr_mtx)
+invisible(gc())
+```
+
+```{r filter-cells}
+Idents(srt, cells = WhichCells(srt, expression = (Pomc > 10 & ora_celltype == "Neurons"))) <- "POMC neurons"
+Idents(srt, cells = WhichCells(srt, expression = ((Agrp > 10 | Npy > 10) & ora_celltype == "Neurons"))) <- "AGRP/NPY neurons"
+Idents(srt, cells = WhichCells(srt, expression = (Insr > 0 & cell_name %in% astrocytes_idx))) <- "Astro_INSR+"
+Idents(srt, cells = WhichCells(srt, expression = (Insr == 0 & cell_name %in% astrocytes_idx))) <- "Astro_INSR-"
+
+
+srt <- subset(srt, idents = c("Astro_INSR+", "Astro_INSR-", "POMC neurons", "AGRP/NPY neurons"))
+srt$goi <- Idents(srt)
+
+```
+
+```{r prepare-data}
+srt.list <- SplitObject(srt, split.by = "libname")
+srt.list %<>% map(NormalizeData)
+srt.list
+```
+
+```{r prepare-cellchat}
+SrtCellChat <- function(seurat_object) {
+  data.input <- GetAssayData(seurat_object, assay = "RNA", slot = "data") # normalized data matrix
+  labels <- Idents(seurat_object)
+  meta <- data.frame(labels = labels, row.names = names(labels)) # create a dataframe of the cell labels
+  cellchat <- createCellChat(object = data.input, meta = meta, group.by = "labels")
+  return(cellchat)
+}
+
+object.list <- lapply(X = srt.list, FUN = SrtCellChat)
+```
+
+```{r plot-cellchatdb}
+CellChatDB <- CellChatDB.mouse # running on mouse data
+showDatabaseCategory(CellChatDB)
+
+glimpse(CellChatDB$interaction)
+skimr::skim(CellChatDB$interaction)
+janitor::tabyl(CellChatDB$interaction, annotation)
+CellChatDB.use <- CellChatDB # simply use the default CellChatDB
+```
+
+```{r compute-cellchat}
+invisible(gc())
+plan("sequential")
+invisible(gc())
+plan("multisession", workers = n_cores)
+
+if (file.exists(here(data_dir, "cellchat-lutomska2022-HFHSD5_and_control.rds"))) {
+    object.list <- readr::read_rds(file = here(data_dir, "cellchat-lutomska2022-HFHSD5_and_control.rds"))
+} else {
+  # set the used database in the object
+  object.list$hfd_05@DB <- CellChatDB.use
+  object.list$control@DB <- CellChatDB.use
+
+  object.list %<>% map(subsetData)
+  object.list %<>% map(identifyOverExpressedGenes)
+  object.list %<>% map(identifyOverExpressedInteractions)
+  object.list %<>% map(projectData, PPI.mouse)
+  object.list %<>% map(computeCommunProb, raw.use = FALSE)
+  object.list %<>% map(filterCommunication, min.cells = 5)
+  object.list %<>% map(computeCommunProbPathway)
+  object.list %<>% map(aggregateNet)
+  object.list %<>% map(netAnalysis_computeCentrality)
+  readr::write_rds(object.list, file = here(data_dir, "cellchat-lutomska2022-HFHSD5_and_control.rds"))
+}
+```
+
+## Plot CellChat network of HFHSD and control mice
+
+
+### Control
+
+```{r plot-cellchat-net-control}
+cellchat <- object.list$control
+groupSize <- as.numeric(table(cellchat@idents))
+par(mfrow = c(1, 2), xpd = TRUE)
+netVisual_circle(cellchat@net$count, vertex.weight = groupSize, weight.scale = T, label.edge = T, title.name = "Number of interactions")
+netVisual_circle(cellchat@net$weight, vertex.weight = groupSize, weight.scale = T, label.edge = T, title.name = "Interaction weights/strength")
+```
+
+```{r plot-cellchat-net-per-group-control}
+mat <- cellchat@net$weight
+par(mfrow = c(2, 2), xpd = TRUE)
+for (i in 1:nrow(mat)) {
+  mat2 <- matrix(0, nrow = nrow(mat), ncol = ncol(mat), dimnames = dimnames(mat))
+  mat2[i, ] <- mat[i, ]
+  netVisual_circle(mat2, vertex.weight = groupSize, weight.scale = T, edge.weight.max = max(mat), title.name = rownames(mat)[i])
+}
+```
+
+### HFHSD
+
+```{r plot-cellchat-net-HFHSD}
+cellchat <- object.list$hfd_05
+groupSize <- as.numeric(table(cellchat@idents))
+par(mfrow = c(1, 2), xpd = TRUE)
+netVisual_circle(cellchat@net$count, vertex.weight = groupSize, weight.scale = T, label.edge = T, title.name = "Number of interactions")
+netVisual_circle(cellchat@net$weight, vertex.weight = groupSize, weight.scale = T, label.edge = T, title.name = "Interaction weights/strength")
+```
+
+```{r plot-cellchat-net-per-group-HFHSD}
+mat <- cellchat@net$weight
+par(mfrow = c(2, 2), xpd = TRUE)
+for (i in 1:nrow(mat)) {
+  mat2 <- matrix(0, nrow = nrow(mat), ncol = ncol(mat), dimnames = dimnames(mat))
+  mat2[i, ] <- mat[i, ]
+  netVisual_circle(mat2, vertex.weight = groupSize, weight.scale = T, edge.weight.max = max(mat), title.name = rownames(mat)[i])
+}
+```
+
+
+## Compare CellChat network of HFHSD and control mice
+
+### Compare the total number of interactions and interaction strength
+
+```{r plot-cellchat-net-compare, fig.width = 4, fig.height = 3}
+object.list <- list(control = object.list$control, HFHSD = object.list$hfd_05)
+
+cellchat <- mergeCellChat(object.list, add.names = names(object.list))
+
+gg1 <- compareInteractions(cellchat, show.legend = F, group = c(1, 2))
+gg2 <- compareInteractions(cellchat, show.legend = F, group = c(1, 2), measure = "weight")
+gg1 + gg2
+```
+
+### Compare the number of interactions and interaction strength among different cell populations
+
+#### Differential number of interactions or interaction strength among different cell populations
+
+
+```{r plot-cellchat-net-compare-strength-per-group}
+par(mfrow = c(1, 2), xpd = TRUE)
+netVisual_diffInteraction(cellchat, weight.scale = T, label.edge = T)
+netVisual_diffInteraction(cellchat, weight.scale = T, measure = "weight", label.edge = T)
+```
+
+```{r plot-cellchat-net-compare-strength-per-group-heatmap, fig.width = 9, fig.height = 5}
+gg1 <- netVisual_heatmap(cellchat)
+gg2 <- netVisual_heatmap(cellchat, measure = "weight")
+gg1 + gg2
+```
+
+```{r plot-cellchat-net-compare-strength-per-group-split-weight}
+weight.max <- getMaxWeight(object.list, attribute = c("idents", "count"))
+par(mfrow = c(1, 2), xpd = TRUE)
+for (i in 1:length(object.list)) {
+  netVisual_circle(object.list[[i]]@net$count, weight.scale = T, label.edge = T, edge.weight.max = weight.max[2], edge.width.max = 12, title.name = paste0("Number of interactions - ", names(object.list)[i]))
+}
+```
+
+#### Compare the major sources and targets in 2D space
+
+```{r plot-cellchat-net-compare-strength-incoming-outgoing, fig.width = 9, fig.asp = 0.618}
+num.link <- sapply(object.list, function(x) {
+  rowSums(x@net$count) + colSums(x@net$count) - diag(x@net$count)
+})
+weight.MinMax <- c(min(num.link), max(num.link)) # control the dot size in the different datasets
+gg <- list()
+for (i in 1:length(object.list)) {
+  gg[[i]] <- netAnalysis_signalingRole_scatter(object.list[[i]], title = names(object.list)[i], weight.MinMax = weight.MinMax)
+}
+
+patchwork::wrap_plots(plots = gg)
+```
+
+```{r plot-cellchat-net-compare-strength-incoming-outgoing-per-group, fig.width = 13, fig.asp = 0.618}
+gg1 <- netAnalysis_signalingChanges_scatter(cellchat, idents.use = "Astro_INSR+")
+gg2 <- netAnalysis_signalingChanges_scatter(cellchat, idents.use = "Astro_INSR-")
+gg3 <- netAnalysis_signalingChanges_scatter(cellchat, idents.use = "POMC neurons")
+gg4 <- netAnalysis_signalingChanges_scatter(cellchat, idents.use = "AGRP/NPY neurons")
+patchwork::wrap_plots(plots = list(gg1, gg2, gg3, gg4))
+```
+
+## Identify the conserved and context-specific signaling pathways
+
+### Identify signaling networks with larger (or less) difference as well as signaling groups based on their functional/structure similarity
+
+Functional similarity: High degree of functional similarity indicates major senders and receivers are similar, and it can be interpreted as the two signaling pathways or two ligand-receptor pairs exhibit similar and/or redundant roles. NB: Functional similarity analysis is not applicable to multiple datsets with different cell type composition.
+
+Structural similarity: A structural similarity was used to compare their signaling network structure, without considering the similarity of senders and receivers. NB: Structural similarity analysis is applicable to multiple datsets with the same cell type composition or the vastly different cell type composition.
+
+#### Identify signaling groups based on their functional similarity
+
+```{r plot-cellchat-net-functional-similarity}
+cellchat <- computeNetSimilarityPairwise(cellchat, type = "functional")
+cellchat <- netEmbedding(cellchat, type = "functional")
+cellchat <- netClustering(cellchat, type = "functional", do.parallel = FALSE)
+netVisual_embeddingPairwise(cellchat, type = "functional", label.size = 3.5)
+```
+
+#### Identify signaling groups based on structure similarity
+
+```{r plot-cellchat-net-structural-similarity}
+cellchat <- computeNetSimilarityPairwise(cellchat, type = "structural")
+cellchat <- netEmbedding(cellchat, type = "structural")
+cellchat <- netClustering(cellchat, type = "structural", do.parallel = FALSE)
+netVisual_embeddingPairwise(cellchat, type = "structural", label.size = 3.5)
+```
+
+### Compute and visualize the pathway distance in the learned joint manifold
+
+We can identify the signaling networks with larger (or less) difference based on their Euclidean distance in the shared two-dimensions space. Larger distance implies larger difference of the communication networks between two datasets in terms of either functional or structure similarity. NB: We only compute the distance of overlapped signaling pathways between two datasets. Those signaling pathways that are only identified in one dataset are not considered here. If there are more than three datasets, one can do pairwise comparisons by defining comparison in the function rankSimilarity.
+
+```{r plot-cellchat-net-pathway-distance}
+rankSimilarity(cellchat, type = "functional")
+```
+
+### Identify and visualize the conserved and context-specific signaling pathways
+
+By comparing the information flow/interaction strengh of each signaling pathway, we can identify signaling pathways, (i) turn off, (ii) decrease, (iii) turn on or (iv) increase, by change their information flow at one condition as compared to another condition.
+
+#### Compare the overall information flow of each signaling pathway
+
+We can identify the conserved and context-specific signaling pathways by simply comparing the information flow for each signaling pathway, which is defined by the sum of communication probability among all pairs of cell groups in the inferred network (i.e., the total weights in the network).
+
+This bar graph can be plotted in a stacked mode or not. Significant signaling pathways were ranked based on differences in the overall information flow within the inferred networks between HFHSD and control mice arcuate nucleus of hypothalamus. The top signaling pathways colored red are enriched in HFHSD mice, and these colored blue were enriched in the control mice.
+
+```{r plot-cellchat-net-pathway-overall-flow}
+gg1 <- rankNet(cellchat, mode = "comparison", stacked = T, do.stat = TRUE)
+gg2 <- rankNet(cellchat, mode = "comparison", stacked = F, do.stat = TRUE)
+gg1 + gg2
+
+```
+
+#### Compare outgoing (or incoming) signaling associated with each cell population
+
+The above analysis summarize the information from the outgoing and incoming signaling together. We can also compare the outgoing (or incoming) signaling pattern between two datasets, allowing to identify signaling pathways/ligand-receptors that exhibit different signaling patterns.
+
+We can combine all the identified signaling pathways from different datasets and thus compare them side by side, including outgoing signaling, incoming signaling and overall signaling by aggregating outgoing and incoming signaling together. NB: rankNet also shows the comparison of overall signaling, but it does not show the signaling strength in specific cell populations.
+
+```{r plot-cellchat-net-pathway-outgoing-flow-per-group}
+i <- 1
+# combining all the identified signaling pathways from different datasets
+pathway.union <- union(object.list[[i]]@netP$pathways, object.list[[i + 1]]@netP$pathways)
+ht1 <- netAnalysis_signalingRole_heatmap(object.list[[i]], pattern = "outgoing", signaling = pathway.union, title = names(object.list)[i], width = 5, height = 14)
+ht2 <- netAnalysis_signalingRole_heatmap(object.list[[i + 1]], pattern = "outgoing", signaling = pathway.union, title = names(object.list)[i + 1], width = 5, height = 14)
+draw(ht1 + ht2, ht_gap = unit(0.5, "cm"))
+```
+
+```{r plot-cellchat-net-pathway-incoming-flow-per-group}
+ht1 <- netAnalysis_signalingRole_heatmap(object.list[[i]], pattern = "incoming", signaling = pathway.union, title = names(object.list)[i], width = 5, height = 14, color.heatmap = "GnBu")
+ht2 <- netAnalysis_signalingRole_heatmap(object.list[[i + 1]], pattern = "incoming", signaling = pathway.union, title = names(object.list)[i + 1], width = 5, height = 14, color.heatmap = "GnBu")
+draw(ht1 + ht2, ht_gap = unit(0.5, "cm"))
+```
+
+```{r plot-cellchat-net-pathway-overall-flow-per-group}
+ht1 <- netAnalysis_signalingRole_heatmap(object.list[[i]], pattern = "all", signaling = pathway.union, title = names(object.list)[i], width = 5, height = 14, color.heatmap = "OrRd")
+ht2 <- netAnalysis_signalingRole_heatmap(object.list[[i + 1]], pattern = "all", signaling = pathway.union, title = names(object.list)[i + 1], width = 5, height = 14, color.heatmap = "OrRd")
+draw(ht1 + ht2, ht_gap = unit(0.5, "cm"))
+```
+
+### Identify dysfunctional signaling by using differential expression analysis
+
+The above method for identifying the upgulated and down-regulated signaling is perfomed by comparing the communication probability between two datasets for each L-R pair and each pair of cell groups. Alternative, we can identify the upgulated and down-regulated signaling ligand-receptor pairs based on the differential gene expression analysis. Specifically, we perform differential expression analysis between two biological conditions (HFHSD and control mice) for each cell group, and then obtain the upgulated and down-regulated signaling based on the fold change of ligands in the sender cells and receptors in the receiver cells. Such analysis can be done as follows.
+
+```{r de-analysis}
+# define a positive dataset, i.e., the dataset with positive fold change against the other dataset
+pos.dataset <- "HFHSD"
+# define a char name used for storing the results of differential expression analysis
+features.name <- pos.dataset
+# perform differential expression analysis
+cellchat <- identifyOverExpressedGenes(cellchat, group.dataset = "datasets", pos.dataset = pos.dataset, features.name = features.name, only.pos = FALSE, thresh.pc = 0.1, thresh.fc = 0.1, thresh.p = 1)
+#> Use the joint cell labels from the merged CellChat object
+# map the results of differential expression analysis onto the inferred cell-cell communications to easily manage/subset the ligand-receptor pairs of interest
+net <- netMappingDEG(cellchat, features.name = features.name)
+# extract the ligand-receptor pairs with upregulated ligands in HFHSD
+net.up <- subsetCommunication(cellchat, net = net, datasets = "HFHSD", ligand.logFC = 0.2, receptor.logFC = NULL)
+# extract the ligand-receptor pairs with upregulated ligands and upregulated recetptors in control, i.e.,downregulated in HFHSD
+net.down <- subsetCommunication(cellchat, net = net, datasets = "control", ligand.logFC = -0.1, receptor.logFC = -0.1)
+
+```
+
+Since the signaling genes in the net.up and net.down might be complex with multi-subunits, we can do further deconvolution to obtain the individual signaling genes
+
+```{r deconvolution}
+up <- extractGeneSubsetFromPair(net.up, cellchat)
+gene.down <- extractGeneSubsetFromPair(net.down, cellchat)
+```
+
+```{r plot-cellchat-net-pathway-upregulated-ligand-receptor-pairs-12}
+pairLR.use.up <- net.up[, "interaction_name", drop = F]
+gg1 <- netVisual_bubble(cellchat, pairLR.use = pairLR.use.up, sources.use = c(1, 2), targets.use = c(3, 4), comparison = c(1, 2), angle.x = 90, remove.isolate = T, title.name = paste0("Up-regulated signaling in ", names(object.list)[2]))
+#> Comparing communications on a merged object
+pairLR.use.down <- net.down[, "interaction_name", drop = F]
+gg2 <- netVisual_bubble(cellchat, pairLR.use = pairLR.use.down, sources.use = c(1, 2), targets.use = c(3, 4), comparison = c(1, 2), angle.x = 90, remove.isolate = T, title.name = paste0("Down-regulated signaling in ", names(object.list)[2]))
+#> Comparing communications on a merged object
+gg1 + gg2
+
+```
+
+```{r plot-cellchat-net-pathway-upregulated-ligand-receptor-pairs-34}
+gg1 <- netVisual_bubble(cellchat, pairLR.use = pairLR.use.up, sources.use = c(3, 4), targets.use = c(1, 2), comparison = c(1, 2), angle.x = 90, remove.isolate = T, title.name = paste0("Up-regulated signaling in ", names(object.list)[2]))
+#> Comparing communications on a merged object
+pairLR.use.down <- net.down[, "interaction_name", drop = F]
+gg2 <- netVisual_bubble(cellchat, pairLR.use = pairLR.use.down, sources.use = c(3, 4), targets.use = c(1, 2), comparison = c(1, 2), angle.x = 90, remove.isolate = T, title.name = paste0("Down-regulated signaling in ", names(object.list)[2]))
+#> Comparing communications on a merged object
+gg1 + gg2
+```
+
+Visualize the enriched ligands, signaling,or ligand-receptor pairs in one condition compared to another condition using wordcloud
+
+```{r plot-wordcloud-enriched-downregulated}
+computeEnrichmentScore(net.down, species = "mouse")
+```
+
+
+### Visually compare cell-cell communication using Hierarchy plot, Circle plot
+
+```{r plot-cellchat-net-pathway-compare-hierarchy, fig.width = 9, fig.height = 5}
+pathways.show.all <- intersect(object.list$HFHSD@netP$pathways, object.list$control@netP$pathways)
+for (i in 1:length(pathways.show.all)) {
+  pathways.show <- pathways.show.all[i]
+  ht <- list()
+  tryCatch(
+    {
+        for (j in 1:length(object.list)) {
+            ht[[j]] <- netVisual_heatmap(object.list[[j]], signaling = pathways.show, color.heatmap = "Reds", title.name = paste(pathways.show, "signaling ", names(object.list)[j]))
+        }
+        ComplexHeatmap::draw(ht[[1]] + ht[[2]], ht_gap = unit(0.5, "cm"))
+    },
+    error = function(e) {
+      # If an error occurs, silently skip to the next iteration
+      next
+    }
+  )
+}
+```
+
+```{r plot-cellchat-net-pathway-compare-circle}
+for (i in 1:length(pathways.show.all)) {
+  tryCatch(
+    {
+        pathways.show <- pathways.show.all[i]
+        weight.max <- getMaxWeight(object.list, slot.name = c("netP"), attribute = pathways.show) # control the edge weights across different datasets
+        par(mfrow = c(1, 2), xpd = TRUE)
+        for (j in 1:length(object.list)) {
+            netVisual_aggregate(object.list[[j]], signaling = pathways.show, label.edge = T, layout = "circle", edge.weight.max = weight.max[1], edge.width.max = 10, signaling.name = paste(pathways.show, names(object.list)[j]))
+        }
+    },
+    error = function(e) {
+      # If an error occurs, silently skip to the next iteration
+      next
+    }
+  )
+}
+```
+
+## Compare the signaling gene expression distribution between different datasets
+
+```{r plot-stck-vln-cellchat-net-pathway-compare-expression}
+cellchat@meta$datasets <- factor(cellchat@meta$datasets, levels = c("control", "HFHSD")) # set factor level
+for (i in 1:length(pathways.show.all)) {
+  tryCatch(
+    {
+        pathways.show <- pathways.show.all[i]
+        plotGeneExpression(cellchat, signaling = pathways.show, split.by = "datasets", colors.ggplot = T)
+    },
+    error = function(e) {
+      # If an error occurs, silently skip to the next iteration
+      next
+    }
+  )
+}
+```
+
+## Save the merged CellChat object
+
+```{r save-cellchat-object}
+readr::write_rds(cellchat, file = here(data_dir, "cellchat-comparison-lutomska2022-HFHSD5_vs_control.rds"))
+```
+
+## Session information
+
+```{r session-info, cache = FALSE}
+sI <- sessioninfo::session_info()
+sI$loadedOnly <- NULL
+print(sI, locale = FALSE)
+```
+

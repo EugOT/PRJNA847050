@@ -1,0 +1,111 @@
+Loading .Rprofile for the current workflowr project
+This is workflowr version 1.7.0
+Run ?workflowr for help getting started
+System has not been booted with systemd as init system (PID 1). Can't operate.
+Failed to connect to bus: Host is down
+Loading .Rprofile for the current workflowr project
+This is workflowr version 1.7.0
+Run ?workflowr for help getting started
+Loading .Rprofile for the current workflowr project
+Loading .Rprofile for the current workflowr project
+Loading .Rprofile for the current workflowr project
+This is workflowr version 1.7.0
+Run ?workflowr for help getting started
+Loading .Rprofile for the current workflowr project
+This is workflowr version 1.7.0
+Run ?workflowr for help getting started
+This is workflowr version 1.7.0
+Run ?workflowr for help getting started
+This is workflowr version 1.7.0
+Run ?workflowr for help getting started
+Loading .Rprofile for the current workflowr project
+This is workflowr version 1.7.0
+Run ?workflowr for help getting started
+Loading .Rprofile for the current workflowr project
+This is workflowr version 1.7.0
+Run ?workflowr for help getting started
+Loading .Rprofile for the current workflowr project
+Loading .Rprofile for the current workflowr project
+Loading .Rprofile for the current workflowr project
+This is workflowr version 1.7.0
+Run ?workflowr for help getting started
+This is workflowr version 1.7.0
+Run ?workflowr for help getting started
+This is workflowr version 1.7.0
+Run ?workflowr for help getting started
+Loading .Rprofile for the current workflowr project
+Loading .Rprofile for the current workflowr project
+Loading .Rprofile for the current workflowr project
+This is workflowr version 1.7.0
+Run ?workflowr for help getting started
+This is workflowr version 1.7.0
+Run ?workflowr for help getting started
+This is workflowr version 1.7.0
+Run ?workflowr for help getting started
+Loading .Rprofile for the current workflowr project
+Loading .Rprofile for the current workflowr project
+This is workflowr version 1.7.0
+Run ?workflowr for help getting started
+This is workflowr version 1.7.0
+Run ?workflowr for help getting started
+Loading .Rprofile for the current workflowr project
+Loading .Rprofile for the current workflowr project
+Loading .Rprofile for the current workflowr project
+Loading .Rprofile for the current workflowr project
+Loading .Rprofile for the current workflowr project
+This is workflowr version 1.7.0
+Run ?workflowr for help getting started
+This is workflowr version 1.7.0
+Run ?workflowr for help getting started
+This is workflowr version 1.7.0
+Run ?workflowr for help getting started
+This is workflowr version 1.7.0
+Run ?workflowr for help getting started
+Loading .Rprofile for the current workflowr project
+This is workflowr version 1.7.0
+Run ?workflowr for help getting started
+Loading .Rprofile for the current workflowr project
+This is workflowr version 1.7.0
+Run ?workflowr for help getting started
+Loading .Rprofile for the current workflowr project
+This is workflowr version 1.7.0
+Run ?workflowr for help getting started
+This is workflowr version 1.7.0
+Run ?workflowr for help getting started
+Loading .Rprofile for the current workflowr project
+Loading .Rprofile for the current workflowr project
+Loading .Rprofile for the current workflowr project
+This is workflowr version 1.7.0
+Run ?workflowr for help getting started
+This is workflowr version 1.7.0
+Run ?workflowr for help getting started
+Loading .Rprofile for the current workflowr project
+This is workflowr version 1.7.0
+Run ?workflowr for help getting started
+Loading .Rprofile for the current workflowr project
+This is workflowr version 1.7.0
+Run ?workflowr for help getting started
+This is workflowr version 1.7.0
+Run ?workflowr for help getting started
+Loading .Rprofile for the current workflowr project
+Loading .Rprofile for the current workflowr project
+This is workflowr version 1.7.0
+Run ?workflowr for help getting started
+This is workflowr version 1.7.0
+Run ?workflowr for help getting started
+Loading .Rprofile for the current workflowr project
+Loading .Rprofile for the current workflowr project
+Loading .Rprofile for the current workflowr project
+This is workflowr version 1.7.0
+Run ?workflowr for help getting started
+This is workflowr version 1.7.0
+Run ?workflowr for help getting started
+This is workflowr version 1.7.0
+Run ?workflowr for help getting started
+  |                                                                              |                                                                      |   0%  |                                                                              |=======================                                               |  33%  |                                                                              |===============================================                       |  67%  |                                                                              |======================================================================| 100%
+  |                                                                              |                                                                      |   0%  |                                                                              |=======================                                               |  33%  |                                                                              |===============================================                       |  67%  |                                                                              |======================================================================| 100%
+Error in Store_Misc_Info_Seurat(seurat_object = seurat_object, data_to_store = palette,  : 
+  object 'qc_palette' not found
+In addition: Warning message:
+In system("timedatectl", intern = TRUE) :
+  running command 'timedatectl' had status 1

@@ -1,0 +1,28 @@
+params	bioproject	cb_fpr	high_cutoff_complexity	high_cutoff_doublet_score	high_cutoff_gene	high_cutoff_pc_hb	high_cutoff_pc_mt	high_cutoff_pc_ribo	high_cutoff_umis	low_cutoff_gene	low_cutoff_umis	project
+load	cell_bender_merged	cell_ranger_merged	combined_srt	scrublet	srr_set
+unnamed-chunk-1	combined_srt	.cache/01A-eda-whole_dataset-fpr_0.05/unnamed-chunk-1_f311e5b685d9f5e8051470335cc29413_meta
+unnamed-chunk-2	median_stats	.cache/01A-eda-whole_dataset-fpr_0.05/unnamed-chunk-2_71fe9ce36f3f3b39b79e4b60c412abc6_meta
+unnamed-chunk-3	feature_diff	.cache/01A-eda-whole_dataset-fpr_0.05/unnamed-chunk-3_6c8d1ad78b46f02744ac052308ab691c_meta
+pl-ambient-correction-qc
+pl-vln-qc	combined_srt	p1	p2	p3	p4	p5	p6	sex_genes	stress_genes
+pl-scatter-qc	plot1	plot2	plot3	plot4
+pl-scatter-qc-comb
+pl-scatter-doublets-log-prob	combined_srt
+unnamed-chunk-4	combined_srt	combined_subset_srt
+pl-init-dr-hvg	agg_genes	all_genes	combined_srt	hvg	keep_genes	out_of_hvg	plot5	top100	var_regex	.cache/01A-eda-whole_dataset-fpr_0.05/pl-init-dr-hvg_2963be7ef9b99d20922cacd50f5568b3_meta
+pl-init-dr-pca-genes	combined_srt	npcs
+update-gene-lists-rna
+pl-init-dr-pca-heatmap
+pl-init-dr-pca-embedding
+pl-init-dr-pca-elbow
+pl-init-dr-pca-jackstraw	combined_srt
+pl-init-dr	selected_pcs	test_pc
+pl-init-dr-umap	combined_srt
+pl-init-dr-resolution	metadata	ref_labels	resolutions
+pl-scatter-qc-comb-mito
+pl-scatter-qc-comb-ribo
+pl-scatter-qc-comb-complexity
+pl-scatter-qc-comb-doublets
+pl-init-dr-clustree	combined_srt
+init-clustree-stability
+pl-scatter-doublets-log-prob-qc-categories

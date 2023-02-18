@@ -3,15 +3,280 @@ output_dir: ../docs
 navbar:
   title: "PRJNA847050"
   left:
-  - text: Home
-    href: index.html
-  - text: About
-    href: about.html
-  - text: License
-    href: license.html
+    - text: Home
+      href: index.html
+    - text: About
+      href: about.html
+    - text: "Analysis"
+      menu:
+        - text: "Exploratory analysis, QC, DR and clustering"
+          menu:
+            - text: "RAW"
+              href: 01-eda-whole_dataset-nc.html
+            - text: "FPR=0.001"
+              href: 01A-eda-whole_dataset-fpr_0.001.html
+            - text: "FPR=0.01"
+              href: 01A-eda-whole_dataset-fpr_0.01.html
+            - text: "FPR=0.05"
+              href: 01A-eda-whole_dataset-fpr_0.05.html
+            - text: "FPR=0.1"
+              href: 01A-eda-whole_dataset-fpr_0.1.html
+        - text: "Subset astrocytes"
+          menu:
+            - text: "RAW"
+              href: 02-eda-astrocytes_dataset-nc.html
+            - text: "FPR=0.001"
+              href: 02A-eda-astrocytes_dataset-fpr_0.001.html
+            - text: "FPR=0.01"
+              href: 02B-eda-astrocytes_dataset-fpr_0.01.html
+            - text: "FPR=0.05"
+              href: 02C-eda-astrocytes_dataset-fpr_0.05.html
+            - text: "FPR=0.1"
+              href: 02D-eda-astrocytes_dataset-fpr_0.1.html
+        - text: "Paired integrations"
+          menu:
+            - text: "PRJNA779749"
+              menu:
+                - text: "RAW"
+                  href: 03-paired_integration-astrocytes_dataset-wt_PRJNA779749-nc.html
+                - text: "FPR=0.001"
+                  href: 03A-paired_integration-astrocytes_dataset-wt_PRJNA779749-fpr_0.001.html
+                - text: "FPR=0.01"
+                  href: 03B-paired_integration-astrocytes_dataset-wt_PRJNA779749-fpr_0.01.html
+                - text: "FPR=0.05"
+                  href: 03C-paired_integration-astrocytes_dataset-wt_PRJNA779749-fpr_0.05.html
+                - text: "FPR=0.1"
+                  href: 03D-paired_integration-astrocytes_dataset-wt_PRJNA779749-fpr_0.1.html
+            - text: "PRJNA548917"
+              menu:
+                - text: "RAW"
+                  href: 03-paired_integration-astrocytes_dataset-wt_PRJNA548917-nc.html
+                - text: "FPR=0.001"
+                  href: 03A-paired_integration-astrocytes_dataset-wt_PRJNA548917-fpr_0.001.html
+                - text: "FPR=0.01"
+                  href: 03B-paired_integration-astrocytes_dataset-wt_PRJNA548917-fpr_0.01.html
+                - text: "FPR=0.05"
+                  href: 03C-paired_integration-astrocytes_dataset-wt_PRJNA548917-fpr_0.05.html
+                - text: "FPR=0.1"
+                  href: 03D-paired_integration-astrocytes_dataset-wt_PRJNA548917-fpr_0.1.html
+            - text: "PRJNA547712"
+              menu:
+                - text: "RAW"
+                  href: 03-paired_integration-astrocytes_dataset-wt_PRJNA547712-nc.html
+                - text: "FPR=0.001"
+                  href: 03A-paired_integration-astrocytes_dataset-wt_PRJNA547712-fpr_0.001.html
+                - text: "FPR=0.01"
+                  href: 03B-paired_integration-astrocytes_dataset-wt_PRJNA547712-fpr_0.01.html
+                - text: "FPR=0.05"
+                  href: 03C-paired_integration-astrocytes_dataset-wt_PRJNA547712-fpr_0.05.html
+                - text: "FPR=0.1"
+                  href: 03D-paired_integration-astrocytes_dataset-wt_PRJNA547712-fpr_0.1.html
+            - text: "PRJNA490830"
+              menu:
+                - text: "RAW"
+                  href: 03-paired_integration-astrocytes_dataset-wt_PRJNA490830-nc.html
+                - text: "FPR=0.001"
+                  href: 03A-paired_integration-astrocytes_dataset-wt_PRJNA490830-fpr_0.001.html
+                - text: "FPR=0.01"
+                  href: 03B-paired_integration-astrocytes_dataset-wt_PRJNA490830-fpr_0.01.html
+                - text: "FPR=0.05"
+                  href: 03C-paired_integration-astrocytes_dataset-wt_PRJNA490830-fpr_0.05.html
+                - text: "FPR=0.1"
+                  href: 03D-paired_integration-astrocytes_dataset-wt_PRJNA490830-fpr_0.1.html
+            - text: "PRJNA438862"
+              menu:
+                - text: "RAW"
+                  href: 03-paired_integration-astrocytes_dataset-wt_PRJNA438862-nc.html
+                - text: "FPR=0.001"
+                  href: 03A-paired_integration-astrocytes_dataset-wt_PRJNA438862-fpr_0.001.html
+                - text: "FPR=0.01"
+                  href: 03B-paired_integration-astrocytes_dataset-wt_PRJNA438862-fpr_0.01.html
+                - text: "FPR=0.05"
+                  href: 03C-paired_integration-astrocytes_dataset-wt_PRJNA438862-fpr_0.05.html
+                - text: "FPR=0.1"
+                  href: 03D-paired_integration-astrocytes_dataset-wt_PRJNA438862-fpr_0.1.html
+            - text: "PRJNA345147"
+              menu:
+                - text: "RAW"
+                  href: 03-paired_integration-astrocytes_dataset-wt_PRJNA345147-nc.html
+                - text: "FPR=0.001"
+                  href: 03A-paired_integration-astrocytes_dataset-wt_PRJNA345147-fpr_0.001.html
+                - text: "FPR=0.01"
+                  href: 03B-paired_integration-astrocytes_dataset-wt_PRJNA345147-fpr_0.01.html
+                - text: "FPR=0.05"
+                  href: 03C-paired_integration-astrocytes_dataset-wt_PRJNA345147-fpr_0.05.html
+                - text: "FPR=0.1"
+                  href: 03D-paired_integration-astrocytes_dataset-wt_PRJNA345147-fpr_0.1.html
+        - text: "Shared state-signature marker genes"
+          menu:
+            - text: "RAW"
+              href: 04-aggregation_shared_signature-astrocytes_dataset-nc.html
+            - text: "FPR=0.001"
+              href: 04A-aggregation_shared_signature-astrocytes_dataset-fpr_0.001.html
+            - text: "FPR=0.01"
+              href: 04B-aggregation_shared_signature-astrocytes_dataset-fpr_0.01.html
+            - text: "FPR=0.05"
+              href: 04C-aggregation_shared_signature-astrocytes_dataset-fpr_0.05.html
+            - text: "FPR=0.1"
+              href: 04D-aggregation_shared_signature-astrocytes_dataset-fpr_0.1.html
+        - text: "Paired integrations with removed state-signature"
+          menu:
+            - text: "PRJNA779749"
+              menu:
+                - text: "RAW"
+                  href: 03-paired_integration-wo_shared_signature-astrocytes_dataset-wt_PRJNA779749-nc.html
+                - text: "FPR=0.001"
+                  href: 03A-paired_integration-wo_shared_signature-astrocytes_dataset-wt_PRJNA779749-fpr_0.001.html
+                - text: "FPR=0.01"
+                  href: 03B-paired_integration-wo_shared_signature-astrocytes_dataset-wt_PRJNA779749-fpr_0.01.html
+                - text: "FPR=0.05"
+                  href: 03C-paired_integration-wo_shared_signature-astrocytes_dataset-wt_PRJNA779749-fpr_0.05.html
+                - text: "FPR=0.1"
+                  href: 03D-paired_integration-wo_shared_signature-astrocytes_dataset-wt_PRJNA779749-fpr_0.1.html
+            - text: "PRJNA548917"
+              menu:
+                - text: "RAW"
+                  href: 03-paired_integration-wo_shared_signature-astrocytes_dataset-wt_PRJNA548917-nc.html
+                - text: "FPR=0.001"
+                  href: 03A-paired_integration-wo_shared_signature-astrocytes_dataset-wt_PRJNA548917-fpr_0.001.html
+                - text: "FPR=0.01"
+                  href: 03B-paired_integration-wo_shared_signature-astrocytes_dataset-wt_PRJNA548917-fpr_0.01.html
+                - text: "FPR=0.05"
+                  href: 03C-paired_integration-wo_shared_signature-astrocytes_dataset-wt_PRJNA548917-fpr_0.05.html
+                - text: "FPR=0.1"
+                  href: 03D-paired_integration-wo_shared_signature-astrocytes_dataset-wt_PRJNA548917-fpr_0.1.html
+            - text: "PRJNA547712"
+              menu:
+                - text: "RAW"
+                  href: 03-paired_integration-wo_shared_signature-astrocytes_dataset-wt_PRJNA547712-nc.html
+                - text: "FPR=0.001"
+                  href: 03A-paired_integration-wo_shared_signature-astrocytes_dataset-wt_PRJNA547712-fpr_0.001.html
+                - text: "FPR=0.01"
+                  href: 03B-paired_integration-wo_shared_signature-astrocytes_dataset-wt_PRJNA547712-fpr_0.01.html
+                - text: "FPR=0.05"
+                  href: 03C-paired_integration-wo_shared_signature-astrocytes_dataset-wt_PRJNA547712-fpr_0.05.html
+                - text: "FPR=0.1"
+                  href: 03D-paired_integration-wo_shared_signature-astrocytes_dataset-wt_PRJNA547712-fpr_0.1.html
+            - text: "PRJNA490830"
+              menu:
+                - text: "RAW"
+                  href: 03-paired_integration-wo_shared_signature-astrocytes_dataset-wt_PRJNA490830-nc.html
+                - text: "FPR=0.001"
+                  href: 03A-paired_integration-wo_shared_signature-astrocytes_dataset-wt_PRJNA490830-fpr_0.001.html
+                - text: "FPR=0.01"
+                  href: 03B-paired_integration-wo_shared_signature-astrocytes_dataset-wt_PRJNA490830-fpr_0.01.html
+                - text: "FPR=0.05"
+                  href: 03C-paired_integration-wo_shared_signature-astrocytes_dataset-wt_PRJNA490830-fpr_0.05.html
+                - text: "FPR=0.1"
+                  href: 03D-paired_integration-wo_shared_signature-astrocytes_dataset-wt_PRJNA490830-fpr_0.1.html
+            - text: "PRJNA438862"
+              menu:
+                - text: "RAW"
+                  href: 03-paired_integration-wo_shared_signature-astrocytes_dataset-wt_PRJNA438862-nc.html
+                - text: "FPR=0.001"
+                  href: 03A-paired_integration-wo_shared_signature-astrocytes_dataset-wt_PRJNA438862-fpr_0.001.html
+                - text: "FPR=0.01"
+                  href: 03B-paired_integration-wo_shared_signature-astrocytes_dataset-wt_PRJNA438862-fpr_0.01.html
+                - text: "FPR=0.05"
+                  href: 03C-paired_integration-wo_shared_signature-astrocytes_dataset-wt_PRJNA438862-fpr_0.05.html
+                - text: "FPR=0.1"
+                  href: 03D-paired_integration-wo_shared_signature-astrocytes_dataset-wt_PRJNA438862-fpr_0.1.html
+            - text: "PRJNA345147"
+              menu:
+                - text: "RAW"
+                  href: 03-paired_integration-wo_shared_signature-astrocytes_dataset-wt_PRJNA345147-nc.html
+                - text: "FPR=0.001"
+                  href: 03A-paired_integration-wo_shared_signature-astrocytes_dataset-wt_PRJNA345147-fpr_0.001.html
+                - text: "FPR=0.01"
+                  href: 03B-paired_integration-wo_shared_signature-astrocytes_dataset-wt_PRJNA345147-fpr_0.01.html
+                - text: "FPR=0.05"
+                  href: 03C-paired_integration-wo_shared_signature-astrocytes_dataset-wt_PRJNA345147-fpr_0.05.html
+                - text: "FPR=0.1"
+                  href: 03D-paired_integration-wo_shared_signature-astrocytes_dataset-wt_PRJNA345147-fpr_0.1.html
+        - text: "Regional heterogeneiry PAGA/ transformed embedding"
+          menu:
+            - text: "RAW"
+              href: 06-heterogeneity-astrocytes_dataset-nc.html
+            - text: "FPR=0.001"
+              href: 06A-heterogeneity-astrocytes_dataset-fpr_0.001.html
+            - text: "FPR=0.01"
+              href: 06B-heterogeneity-astrocytes_dataset-fpr_0.01.html
+            - text: "FPR=0.05"
+              href: 06C-heterogeneity-astrocytes_dataset-fpr_0.05.html
+            - text: "FPR=0.1"
+              href: 06D-heterogeneity-astrocytes_dataset-fpr_0.1.html
+        - text: "RNA velocity"
+          menu:
+            - text: "RAW"
+              href: 07-velocity-astrocytes_dataset-nc.html
+            - text: "FPR=0.001"
+              href: 07A-velocity-astrocytes_dataset-fpr_0.001.html
+            - text: "FPR=0.01"
+              href: 07B-velocity-astrocytes_dataset-fpr_0.01.html
+            - text: "FPR=0.05"
+              href: 07C-velocity-astrocytes_dataset-fpr_0.05.html
+            - text: "FPR=0.1"
+              href: 07D-velocity-astrocytes_dataset-fpr_0.1.html
+        - text: "Ligand-Receptor interactions"
+          menu:
+            - text: "RAW"
+              href: 07-ligrec-whole_dataset-nc.html
+            - text: "FPR=0.001"
+              href: 07A-ligrec-whole_dataset-fpr_0.001.html
+            - text: "FPR=0.01"
+              href: 07B-ligrec-whole_dataset-fpr_0.01.html
+            - text: "FPR=0.05"
+              href: 07C-ligrec-whole_dataset-fpr_0.05.html
+            - text: "FPR=0.1"
+              href: 07D-ligrec-whole_dataset-fpr_0.1.html
+        - text: "Regulons"
+          menu:
+            - text: "RAW"
+              href: 07-regulons-astrocytes_dataset-nc.html
+            - text: "FPR=0.001"
+              href: 07A-regulons-astrocytes_dataset-fpr_0.001.html
+            - text: "FPR=0.01"
+              href: 07B-regulons-astrocytes_dataset-fpr_0.01.html
+            - text: "FPR=0.05"
+              href: 07C-regulons-astrocytes_dataset-fpr_0.05.html
+            - text: "FPR=0.1"
+              href: 07D-regulons-astrocytes_dataset-fpr_0.1.html
+        - text: "Metabolic"
+          menu:
+            - text: "RAW"
+              href: 07-metabolic-astrocytes_dataset-nc.html
+            - text: "FPR=0.001"
+              href: 07A-metabolic-astrocytes_dataset-fpr_0.001.html
+            - text: "FPR=0.01"
+              href: 07B-metabolic-astrocytes_dataset-fpr_0.01.html
+            - text: "FPR=0.05"
+              href: 07C-metabolic-astrocytes_dataset-fpr_0.05.html
+            - text: "FPR=0.1"
+              href: 07D-metabolic-astrocytes_dataset-fpr_0.1.html
+    - text: "Reports"
+      menu:
+        - text: "Cell Ranger"
+          menu:
+            - text: "SRR19578589"
+              href: SRR19578589_cellranger_summary.html
+            - text: "SRR19578590"
+              href: SRR19578590_cellranger_summary.html
+            - text: "SRR19578591"
+              href: SRR19578591_cellranger_summary.html
+    - text: "Methods"
+      href: 90-methods.html
+  right:
+    - text: License
+      href: license.html
+    - text: "Heterogeneity Analysis"
+      href: https://eugot.github.io/heteroAstrocytes/index.html
+    - icon: fa-github
+      href: https://github.com/EugOT/PRJNA847050
 output:
   workflowr::wflow_html:
     toc: yes
     toc_float: yes
     theme: cosmo
     highlight: textmate
+    code_folding: hide
+    df_print: paged
